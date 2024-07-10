@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="generator" content="1.0.0">
+	<meta name="title" content="Minesweeper">
+	<meta name="author" content="eccs0103">
+	<meta name="color-scheme" content="system">
+	<meta name="description" content="Play Minesweeper for free. Challenge yourself with different difficulty levels and improve your puzzle-solving skills. Enjoy the classic game of Minesweeper with a modern interface and responsive design.">
+	<meta name="keywords" content="minesweeper, free, puzzle game, classic games, brain games, challenges">
+	<meta name="robots" content="index, follow">
+	<meta name="language" content="English">
+	<meta name="revisit-after" content="0 days">
+	<title>Minesweeper - Playground</title>
+	<link rel="shortcut icon" href="../resources/icons/mine.svg" media="(prefers-color-scheme: light)">
+	<link rel="shortcut icon" href="../resources/icons/mine-inverted.svg" media="(prefers-color-scheme: dark)">
+	<link rel="preload" as="image" href="../resources/loading.gif">
+	<link rel="stylesheet" href="../styles/global.css">
+	<link rel="stylesheet" href="../styles/themes/material.css">
+	<link rel="stylesheet" href="./style.css">
+	<script type="module" src="./script.js"></script>
+</head>
+
+<body>
+	<main class="layer">
+		<canvas id="display"></canvas>
+	</main>
+	<button id="open-settings" class="with-padding large-padding flex secondary-centered">
+		<img src="../resources/icons/settings.png" alt="Settings" class="icon">
+	</button>
+	<dialog id="settings" class="layer rounded with-padding large-padding">
+		<h3>Settings</h3>
+		<section class="option">
+			<p class="title">Board size</p>
+			<input id="size-textbox" type="text" class="value depth rounded with-padding">
+			<dfn class="definition">The dimensions of the board separated by comma.</dfn>
+		</section>
+		<section class="option">
+			<p class="title">Mines count</p>
+			<div class="flex secondary-centered with-gap value">
+				<input id="count-textbox" type="number" class="depth rounded with-padding">
+			</div>
+			<dfn class="definition">The number of mines in board.</dfn>
+		</section>
+		<section class="option">
+			<p class="title">Fix ratio</p>
+			<input id="fix-ratio" type="checkbox" hidden>
+			<label for="fix-ratio" role="checkbox" class="value depth toggle">
+				<span class="layer knob"></span>
+			</label>
+			<dfn class="definition">Fixes the ratio of the board size and the number of mines, adjusting other properties as needed.</dfn>
+		</section>
+		<!-- <section class="option">
+			<p class="title">Inverted control</p>
+			<input id="inverted-control" type="checkbox" hidden>
+			<label for="inverted-control" role="checkbox" class="value depth toggle">
+				<span class="layer knob"></span>
+			</label>
+			<dfn class="definition">Invert control for primary and secondary actions.</dfn>
+		</section> -->
+	</dialog>
+	<script src="../scripts/templates/loader.js"></script>
+	<script src="../scripts/templates/popup.js"></script>
+</body>
+
+</html>

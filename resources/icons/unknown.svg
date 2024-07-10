@@ -1,0 +1,13 @@
+<svg width="32" height="32" viewBox="-16 -16 32 32" xmlns="http://www.w3.org/2000/svg">
+	<style>
+		.centered {
+			font-family: 'Cascadia Code', 'Segoe UI', 'Dank Mono', monospace;
+			font-weight: 600;
+			fill: yellow;
+			dominant-baseline: middle;
+			text-anchor: middle;
+			alignment-baseline: central;
+		}
+	</style>
+	<text x="0" y="0" class="centered">?</text>
+</svg>

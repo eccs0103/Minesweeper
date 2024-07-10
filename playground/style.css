@@ -1,0 +1,34 @@
+body {
+	position: fixed;
+	inset: 0;
+}
+
+dialog.loader img[alt="Logo"] {
+	content: url(../../resources/loading.gif);
+}
+
+main {
+	position: absolute;
+	inset: 0;
+	margin: auto;
+	max-height: 100%;
+	aspect-ratio: var(--board-width) / var(--board-height);
+}
+
+canvas#display {
+	width: 100%;
+	height: 100%;
+}
+
+button#open-settings {
+	position: absolute;
+	inset: 0 0 auto auto;
+}
+
+dialog input {
+	max-width: 30vmin;
+
+	&[type="number"] {
+		max-width: 15vmin;
+	}
+}
