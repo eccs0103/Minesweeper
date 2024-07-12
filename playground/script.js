@@ -381,6 +381,6 @@ class Controller {
 	}
 }
 const controller = new Controller();
-await window.assert(() => controller.awake(), false);
-await window.assert(() => window.load(controller.main()), false);
+await window.assert(() => controller.awake());
+await window.assert(() => window.load(controller.main()));
 //#endregion
