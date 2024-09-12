@@ -3,10 +3,6 @@ body {
 	inset: 0;
 }
 
-dialog.loader img[alt="Logo"] {
-	content: url(../../resources/loading.gif);
-}
-
 main {
 	position: absolute;
 	inset: 0;
@@ -31,4 +27,8 @@ dialog input {
 	&[type="number"] {
 		max-width: 15vmin;
 	}
+}
+
+dialog.loader img[alt="Logo"] {
+	content: url(../../resources/loading.gif);
 }

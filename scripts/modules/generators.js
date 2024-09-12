@@ -1,5 +1,7 @@
 "use strict";
 
+import { ImplementationError } from "./extensions.js";
+
 const { random, round, trunc } = Math;
 
 //#region Engine
@@ -18,13 +20,17 @@ const { random, round, trunc } = Math;
  * @abstract
  */
 class Engine extends EventTarget {
+	constructor() {
+		super();
+		if (new.target === Engine) throw new TypeError(`Unable to create an instance of an abstract class`);
+	}
 	/**
 	 * Gets the launch status of the engine.
 	 * @abstract
 	 * @returns {boolean}
 	 */
 	get launched() {
-		throw new ReferenceError(`Not implemented function`);
+		throw new ImplementationError();
 	}
 	/**
 	 * Sets the launch status of the engine.
@@ -33,7 +39,7 @@ class Engine extends EventTarget {
 	 * @returns {void}
 	 */
 	set launched(value) {
-		throw new ReferenceError(`Not implemented function`);
+		throw new ImplementationError();
 	}
 	/**
 	 * Gets the FPS limit of the engine.
@@ -41,7 +47,7 @@ class Engine extends EventTarget {
 	 * @returns {number}
 	 */
 	get limit() {
-		throw new ReferenceError(`Not implemented function`);
+		throw new ImplementationError();
 	}
 	/**
 	 * Sets the FPS limit of the engine.
@@ -50,7 +56,7 @@ class Engine extends EventTarget {
 	 * @returns {void}
 	 */
 	set limit(value) {
-		throw new ReferenceError(`Not implemented function`);
+		throw new ImplementationError();
 	}
 	/**
 	 * Gets the Frames Per Second (FPS) of the engine.
@@ -58,7 +64,7 @@ class Engine extends EventTarget {
 	 * @returns {number}
 	 */
 	get FPS() {
-		throw new ReferenceError(`Not implemented function`);
+		throw new ImplementationError();
 	}
 	/**
 	 * Gets the time delta between frames.
@@ -67,7 +73,7 @@ class Engine extends EventTarget {
 	 * @returns {number}
 	 */
 	get delta() {
-		throw new ReferenceError(`Not implemented function`);
+		throw new ImplementationError();
 	}
 }
 //#endregion
@@ -355,10 +361,10 @@ class Random {
 	 * @template T
 	 * @param {Readonly<T[]>} array The array of elements.
 	 * @returns {T} A random element.
-	 * @throws {EvalError} If the array is empty.
+	 * @throws {Error} If the array is empty.
 	 */
 	item(array) {
-		if (1 > array.length) throw new EvalError(`Array must have at least 1 item`);
+		if (1 > array.length) throw new Error(`Array must have at least 1 item`);
 		return array[this.integer(0, array.length)];
 	}
 	/**
@@ -412,7 +418,7 @@ class Random {
 			}
 			begin = end;
 		}
-		throw new EvalError(`Unable to select element with value ${random}`);
+		throw new Error(`Unable to select element with value ${random}`);
 	};
 	/**
 	 * Generates a random GUID identifier.

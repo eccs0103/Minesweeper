@@ -1,9 +1,10 @@
+/** 
+ * @typedef {import("../scripts/structure.js").SettingsNotation} SettingsNotation
+ */
+
 "use strict";
 
-/** @typedef {import("../scripts/structure.js").SettingsNotation} SettingsNotation */
-
 import { Point2D } from "../scripts/modules/measures.js";
-import { Color } from "../scripts/modules/palette.js";
 import { ArchiveManager } from "../scripts/modules/storage.js";
 import { Board, OutcomeOptions, Settings } from "../scripts/structure.js";
 
@@ -11,20 +12,20 @@ const { trunc, ceil, min, sqrt } = Math;
 
 //#region Controller
 /**
- * Represents the model controller.
+ * Represents the controller for the application.
  */
 class Controller {
-	/** @type {ArchiveManager<SettingsNotation, Settings>} */
-	#managerSettings;
-	/** @type {Board} */
-	#board;
 	/**
 	 * @param {Readonly<Point2D>} size 
 	 * @returns {number}
 	 */
-	#getSurface(size) {
+	static #getSurface(size) {
 		return size.x * size.y;
 	}
+	/** @type {ArchiveManager<SettingsNotation, Settings>} */
+	#managerSettings;
+	/** @type {Board} */
+	#board;
 	/** @type {HTMLElement} */
 	#main;
 	/** @type {HTMLCanvasElement} */
@@ -61,21 +62,6 @@ class Controller {
 	}
 	/**
 	 * @param {Readonly<Point2D>} position 
-	 * @param {string} text 
-	 * @returns {void}
-	 */
-	#writeAt(position, text) {
-		const context = this.#context;
-		const scale = this.#scale;
-		const { actualBoundingBoxAscent } = context.measureText(text);
-		context.fillText(text,
-			scale.x * (position.x + 0.5),
-			scale.y * (position.y + 0.5) + actualBoundingBoxAscent * 0.5,
-			scale.x / 2
-		);
-	}
-	/**
-	 * @param {Readonly<Point2D>} position 
 	 * @param {CanvasImageSource} image 
 	 */
 	#drawAt(position, image) {
@@ -92,57 +78,53 @@ class Controller {
 	#svgField;
 	/** @type {HTMLImageElement} */
 	#svgDiggedField;
+	/** @type {HTMLImageElement} */
+	#svgExplodedField;
+	/** @type {HTMLImageElement} */
+	#svgNeutralizedField;
 	/**
 	 * @param {Readonly<Point2D>} position 
-	 * @returns {void}
+	 * @returns {CanvasImageSource}
 	 * @throws {TypeError} If the x or y coordinate of the position is not an integer.
 	 * @throws {RangeError} If the x or y coordinate of the position is out of range.
 	 */
-	#renderBackgroundAt(position) {
-		this.#drawAt(position, (this.#board.getStateAt(position) < 0
-			? this.#svgField
-			: this.#svgDiggedField
-		));
+	#getBackgroundSourceAt(position) {
+		const board = this.#board;
+		const state = board.getStateAt(position);
+		if (state < 0) return this.#svgField;
+		if (state < Board.peakDanger || board.outcome === OutcomeOptions.undefined) return this.#svgDiggedField;
+		if (board.outcome === OutcomeOptions.victory) return this.#svgNeutralizedField;
+		if (board.outcome === OutcomeOptions.defeat) return this.#svgExplodedField;
+		throw new ReferenceError(`Unable to get background source for outcome '${board.outcome}' and state '${state}' at '${position}'`);
 	}
-	/** @type {Color[]} */
-	#colors = [
-		Color.TRANSPARENT,
-		Color.viaRGB(0, 0, 255),
-		Color.viaRGB(0, 128, 0),
-		Color.viaRGB(255, 0, 0),
-		Color.viaRGB(0, 0, 139),
-		Color.viaRGB(128, 0, 0),
-		Color.viaRGB(0, 255, 255),
-		Color.viaRGB(128, 0, 128),
-		Color.viaRGB(128, 128, 128),
-	];
 	/** @type {HTMLImageElement} */
-	#svgMine;
+	#svgUnknown;
 	/** @type {HTMLImageElement} */
 	#svgFlag;
 	/** @type {HTMLImageElement} */
-	#svgUnknown;
+	#svgUndefined;
+	/** @type {HTMLImageElement[]} */
+	#svgDangers;
+	/** @type {HTMLImageElement} */
+	#svgMine;
 	/**
 	 * @param {Readonly<Point2D>} position 
-	 * @returns {void}
+	 * @returns {CanvasImageSource}
 	 * @throws {TypeError} If the x or y coordinate of the position is not an integer.
 	 * @throws {RangeError} If the x or y coordinate of the position is out of range.
 	 */
-	#renderForegroundAt(position) {
-		const context = this.#context;
+	#getForegroundSourceAt(position) {
 		const state = this.#board.getStateAt(position);
-		if (state === Board.peakDanger) {
-			this.#drawAt(position, this.#svgMine);
-		} else if (0 < state && state < Board.peakDanger) {
-			context.save();
-			context.fillStyle = this.#colors[state].toString();
-			this.#writeAt(position, state.toString());
-			context.restore();
-		} else if (state === -2) {
-			this.#drawAt(position, this.#svgFlag);
-		} else if (state === -3) {
-			this.#drawAt(position, this.#svgUnknown);
+		if (state === -3) return this.#svgUnknown;
+		if (state === -2) return this.#svgFlag;
+		if (state === -1) return this.#svgUndefined;
+		if (0 <= state && state < Board.peakDanger) {
+			const source = this.#svgDangers.at(state);
+			if (source === undefined) throw new ReferenceError(`Unable to get foreground source state '${state}' at '${position}'`);
+			return source;
 		}
+		if (state === Board.peakDanger) return this.#svgMine;
+		throw new ReferenceError(`Unable to get foreground source state '${state}' at '${position}'`);
 	}
 	/**
 	 * @returns {void}
@@ -152,8 +134,8 @@ class Controller {
 		for (let y = 0; y < size.y; y++) {
 			for (let x = 0; x < size.x; x++) {
 				const position = new Point2D(x, y);
-				this.#renderBackgroundAt(position);
-				this.#renderForegroundAt(position);
+				this.#drawAt(position, this.#getBackgroundSourceAt(position));
+				this.#drawAt(position, this.#getForegroundSourceAt(position));
 			}
 		}
 	}
@@ -164,8 +146,8 @@ class Controller {
 		const modifications = this.#board.modifications;
 		if (modifications.size < 1) return;
 		for (const position of modifications.shift()) {
-			this.#renderBackgroundAt(position);
-			this.#renderForegroundAt(position);
+			this.#drawAt(position, this.#getBackgroundSourceAt(position));
+			this.#drawAt(position, this.#getForegroundSourceAt(position));
 		}
 	}
 	/**
@@ -180,8 +162,8 @@ class Controller {
 			while (true) {
 				const position = area.peek;
 				if (position.x !== anchor.x) break;
-				this.#renderBackgroundAt(position);
-				this.#renderForegroundAt(position);
+				this.#drawAt(position, this.#getBackgroundSourceAt(position));
+				this.#drawAt(position, this.#getForegroundSourceAt(position));
 				area.shift();
 				if (area.size < 1) break;
 			}
@@ -232,12 +214,11 @@ class Controller {
 	/** @type {HTMLInputElement} */
 	#inputFixRatio;
 	// /** @type {HTMLInputElement} */
-	// #inputToggleInvertedControl;
+	// #inputInvertedControl;
 	/**
-	 * Performs initial setup and loads necessary resources before the main logic.
 	 * @returns {Promise<void>}
 	 */
-	async awake() {
+	async #preload() {
 		this.#managerSettings = await ArchiveManager.construct(`${navigator.dataPath}.Settings`, Settings);
 
 		const body = document.body;
@@ -261,13 +242,12 @@ class Controller {
 		this.#inputCountTextbox = dialogSettings.getElement(HTMLInputElement, `input#count-textbox`);
 		this.#inputFixRatio = dialogSettings.getElement(HTMLInputElement, `input#fix-ratio`);
 
-		// this.#inputToggleInvertedControl = dialogSettings.getElement(HTMLInputElement, `input#toggle-inverted-control`);
+		// this.#inputInvertedControl = dialogSettings.getElement(HTMLInputElement, `input#inverted-control`);
 	}
 	/**
-	 * Contains the main logic for the application.
 	 * @returns {Promise<void>}
 	 */
-	async main() {
+	async #run() {
 		const managerSettings = this.#managerSettings;
 		const settings = managerSettings.content;
 		const { boardSize, minesCount } = settings;
@@ -277,18 +257,23 @@ class Controller {
 		this.#resizeCanvas();
 		window.addEventListener(`resize`, (event) => this.#resizeCanvas());
 
-		this.#svgField = await document.loadResource(`../resources/icons/field.svg`);
-		this.#svgDiggedField = await document.loadResource(`../resources/icons/digged-field.svg`);
-		this.#svgMine = await document.loadResource(`../resources/icons/mine.svg`);
-		this.#svgFlag = await document.loadResource(`../resources/icons/flag.svg`);
-		this.#svgUnknown = await document.loadResource(`../resources/icons/unknown.svg`);
+		this.#svgField = await document.loadImage(`../resources/icons/background/field.svg`);
+		this.#svgDiggedField = await document.loadImage(`../resources/icons/background/digged-field.svg`);
+		this.#svgNeutralizedField = await document.loadImage(`../resources/icons/background/neutralized-field.svg`);
+		this.#svgExplodedField = await document.loadImage(`../resources/icons/background/exploded-field.svg`);
+
+		this.#svgUnknown = await document.loadImage(`../resources/icons/foreground/unknown.svg`);
+		this.#svgFlag = await document.loadImage(`../resources/icons/foreground/flag.svg`);
+		this.#svgUndefined = await document.loadImage(`../resources/icons/foreground/undefined.svg`);
+		this.#svgDangers = await document.loadImages(Array.sequence(0, Board.peakDanger - 1).map(level => `../resources/icons/foreground/danger-${level}.svg`));
+		this.#svgMine = await document.loadImage(`../resources/icons/foreground/mine.svg`);
 
 		this.#resizeContext();
 		window.addEventListener(`resize`, (event) => this.#resizeContext());
 		this.#renderBoard();
 		window.addEventListener(`resize`, (event) => this.#renderBoard());
 
-		canvas.addEventListener(`click`, async (event) => {
+		canvas.addEventListener(`click`, (event) => window.assert(async () => {
 			event.preventDefault();
 			if (await this.#isSessionSuspended(true)) return;
 
@@ -299,8 +284,8 @@ class Controller {
 			this.#renderChanges();
 
 			if (await this.#isSessionSuspended(false)) return;
-		});
-		canvas.addEventListener(`contextmenu`, async (event) => {
+		}));
+		canvas.addEventListener(`contextmenu`, (event) => window.assert(async () => {
 			event.preventDefault();
 			if (await this.#isSessionSuspended(true)) return;
 
@@ -310,7 +295,7 @@ class Controller {
 			this.#renderChanges();
 
 			if (await this.#isSessionSuspended(false)) return;
-		});
+		}));
 
 		const buttonOpenSettings = this.#buttonOpenSettings;
 		const dialogSettings = this.#dialogSettings;
@@ -329,7 +314,7 @@ class Controller {
 			try {
 				const size = Point2D.parse(inputSizeTextbox.value);
 				const count = (settings.fixRatio
-					? trunc(board.count * this.#getSurface(size) / this.#getSurface(board.size))
+					? trunc(board.count * Controller.#getSurface(size) / Controller.#getSurface(board.size))
 					: board.count
 				);
 				board.resize(size, count);
@@ -373,14 +358,20 @@ class Controller {
 			settings.fixRatio = inputFixRatio.checked;
 		});
 
-		// const inputToggleInvertedControl = this.#inputToggleInvertedControl;
+		// const inputToggleInvertedControl = this.#inputInvertedControl;
 		// inputToggleInvertedControl.checked = settings.invertedControl;
 		// inputToggleInvertedControl.addEventListener(`change`, (event) => {
 		// 	settings.invertedControl = inputToggleInvertedControl.checked;
 		// });
 	}
+	/**
+	 * @returns {Promise<void>}
+	 */
+	async main() {
+		await this.#preload();
+		await window.load(this.#run());
+	}
 }
 const controller = new Controller();
-await window.assert(() => controller.awake());
-await window.assert(() => window.load(controller.main()));
+await window.assert(() => controller.main());
 //#endregion

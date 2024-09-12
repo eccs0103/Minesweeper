@@ -1,7 +1,7 @@
 "use strict";
 
 import { } from "../structure.js";
-import { Stopwatch, Timespan } from "./measures.js";
+import { Stopwatch } from "./measures.js";
 
 //#region Analyser
 /**
@@ -9,16 +9,18 @@ import { Stopwatch, Timespan } from "./measures.js";
  */
 class Analyser {
 	/**
-	 * Measures the duration of an action.
-	 * @param {(...args: any) => unknown} action The action to measure.
-	 * @returns {Promise<Timespan>} The duration of the action.
+	 * @param {(...args: void[]) => unknown} action 
+	 * @param {number} count 
+	 * @returns {Promise<number>}
 	 */
-	static async measureDurationOf(action) {
+	static async benchmark(action, count = 1) {
 		const stopwatch = new Stopwatch();
-		stopwatch.launched = true;
-		await action();
-		stopwatch.launched = false;
-		return stopwatch.elapsed;
+		for (let index = 0; index < count; index++) {
+			stopwatch.launched = true;
+			await action();
+			stopwatch.launched = false;
+		}
+		return stopwatch.elapsed / count;
 	}
 }
 //#endregion

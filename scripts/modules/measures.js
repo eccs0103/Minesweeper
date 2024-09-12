@@ -1,5 +1,7 @@
 "use strict";
 
+import { ImplementationError } from "./extensions.js";
+
 const { hypot, abs, trunc } = Math;
 
 //#region Point
@@ -60,6 +62,9 @@ class Point {
 	static #join(metrics) {
 		return `(${metrics.join(`, `)})`;
 	}
+	constructor() {
+		if (new.target === Point) throw new TypeError(`Unable to create an instance of an abstract class`);
+	}
 	//#endregion
 	//#region Modifiers
 	/**
@@ -109,7 +114,7 @@ class Point {
 	 * @returns {Iterator<number>} An iterator object.
 	 */
 	*[Symbol.iterator]() {
-		throw new ReferenceError(`Not implemented function`);
+		throw new ImplementationError();
 	}
 	//#endregion
 }
@@ -1193,32 +1198,32 @@ class Stopwatch {
 	 * @param {boolean} launch Whether to start the stopwatch immediately.
 	 */
 	constructor(launch = false) {
-		let previous = 0;
+		this.#launched = launch;
+
+		let previous = performance.now();
 		/**
 		 * @param {number} current 
 		 * @returns {void}
 		 */
 		const callback = (current) => {
 			const difference = current - previous;
-			if (this.#launched) {
+			if (this.launched) {
 				this.#elapsed += difference;
 			}
 			previous = current;
-			requestAnimationFrame(callback);
+			setTimeout(callback, 0, performance.now());
 		};
-		requestAnimationFrame(callback);
-
-		this.#launched = launch;
+		setTimeout(callback, 0, performance.now());
 	}
-	/** @type {number} */
+	/** @type {DOMHighResTimeStamp} */
 	#elapsed = 0;
 	/**
-	 * Gets the elapsed time as a Timespan instance.
+	 * Gets the elapsed time as milliseconds.
 	 * @readonly
-	 * @returns {Timespan}
+	 * @returns {DOMHighResTimeStamp}
 	 */
 	get elapsed() {
-		return Timespan.viaDuration(this.#elapsed);
+		return this.#elapsed;
 	}
 	/**
 	 * Resets the elapsed time to zero.

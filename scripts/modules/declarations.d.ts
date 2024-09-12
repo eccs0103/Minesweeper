@@ -32,7 +32,7 @@ interface Number {
 	 * @param min2 The minimum value of the target range.
 	 * @param max2 The maximum value of the target range.
 	 * @returns The interpolated value within the target range.
-	 * @throws {EvalError} If the minimum and maximum values of either range are equal.
+	 * @throws {Error} If the minimum and maximum values of either range are equal.
 	 */
 	interpolate(min1: number, max1: number, min2?: number, max2?: number): number;
 }
@@ -89,19 +89,36 @@ interface String {
 	insteadOfVoid(text: string): string;
 }
 
+interface FunctionConstructor {
+	/**
+	 * Checks if the given function is implemented by running it and seeing if it throws a specific `ReferenceError`.
+	 * @param action The function to check for implementation.
+	 * @returns A promise that resolves to `true` if the function is implemented, `false` otherwise.
+	 */
+	isImplemented(action: (...args: any) => unknown): Promise<boolean>;
+	/**
+	 * Ensures the given function is implemented by checking it and throwing an error if it is not.
+	 * @param action The function to check for implementation.
+	 * @param name The name of the function to be used in the error message if the function is not implemented.
+	 * @returns A promise that resolves if the function is implemented, otherwise it rejects with an error.
+	 * @throws {Error} Throws an error if the function is not implemented.
+	 */
+	checkImplementation(action: (...args: any) => unknown, name: string): Promise<void>;
+}
+
 interface Function {
 	/**
 	 * Imports from a source.
 	 * @abstract
-	 * @param {unknown} source The source to import.
-	 * @param {string} name The name of the source.
-	 * @returns {any} The imported value.
+	 * @param source The source to import.
+	 * @param name The name of the source.
+	 * @returns The imported value.
 	 */
 	import(source: unknown, name?: string): any;
 	/**
 	 * Exports the result.
 	 * @abstract
-	 * @returns {any} The exported value.
+	 * @returns The exported value.
 	 */
 	export(): any;
 }
@@ -145,6 +162,13 @@ interface ArrayConstructor {
 	 * @throws {TypeError} Throws a TypeError if the source is not an array.
 	 */
 	import(source: unknown, name?: string): any[];
+	/**
+	 * Generates a sequence of numbers from min to max (exclusive).
+	 * @param min The starting number of the sequence (inclusive).
+	 * @param max The ending number of the sequence (exclusive).
+	 * @returns An array containing the sequence of numbers.
+	 */
+	sequence(min: number, max: number): number[];
 }
 
 interface Array<T extends Function> {
@@ -156,6 +180,12 @@ interface Array<T extends Function> {
 }
 
 interface Math {
+	/**
+	 * Splits a number into its integer and fractional parts.
+	 * @param x The number to be split.
+	 * @returns A tuple where the first element is the integer part and the second element is the fractional part.
+	 */
+	split(x: number): [number, number];
 	/**
 	 * Calculates the square of a number.
 	 * @param x The number to square.
@@ -280,7 +310,20 @@ interface Element {
 }
 
 interface Document {
-	loadResource(url: string): Promise<HTMLImageElement>;
+	/**
+	 * Asynchronously loads an image from the specified URL.
+	 * @param url The URL of the image to be loaded.
+	 * @returns A promise that resolves with the loaded image element.
+	 * @throws {Error} If the image fails to load.
+	 */
+	loadImage(url: string): Promise<HTMLImageElement>;
+	/**
+	 * Asynchronously loads multiple images from the provided URLs.
+	 * @param urls An array of image URLs to be loaded.
+	 * @returns A promise that resolves with an array of loaded image elements.
+	 * @throws {Error} If any image fails to load.
+	 */
+	loadImages(urls: string[]): Promise<HTMLImageElement[]>;
 };
 
 interface Window {
@@ -324,29 +367,20 @@ interface Window {
 	 */
 	throw(message?: any): Promise<void>;
 	/**
-	 * Asynchronously handles an error, displaying it in an alert.
-	 * @param error The error to handle.
-	 * @param reload Indicates whether the application should be reloaded after displaying the error.
-	 * @returns A promise that resolves once the error handling is complete.
+	 * Executes an action and handles any errors that occur.
+	 * @param action The action to be executed.
+	 * @param silent In silent mode errors are silently ignored; otherwise, they are thrown and the page is reloaded.
+	 * @returns A promise that resolves the action.
 	 */
-	catch(error: Error, reload?: boolean): Promise<void>;
+	assert(action: () => unknown, silent?: boolean): Promise<void>;
 	/**
-	 * Asserts the execution of an action or stops the program if errors occur.
-	 * @template T
-	 * @param action The action to execute.
-	 * @param reload Indicates whether the application should be reloaded after an error.
-	 * @returns A Promise that resolves with the result of the action or rejects with the error.
-	 * @throws {Error} If the action throws an error.
+	 * Executes an action and returns its result, or a default value if an error occurs.
+	 * @template T The type of the result returned by the action and the default value.
+	 * @param action The action to be executed.
+	 * @param $default The default value to return if the action throws an error.
+	 * @returns A promise that resolves to the result of the action or the default value.
 	 */
-	assert<T>(action: () => T, reload?: boolean): Promise<T>;
-	/**
-	 * Insures that no errors occur when executing an action.
-	 * @template T
-	 * @param action The action to execute.
-	 * @param eventually The callback to execute after the action is complete.
-	 * @returns A Promise that resolves with the result of the action, or void if it fails.
-	 */
-	insure<T>(action: () => T, eventually?: () => unknown): Promise<T | void>;
+	insure<T>(action: () => T | PromiseLike<T>, $default: T): Promise<T>;
 	/**
 	 * Asynchronously loads a promise with a loading animation.
 	 * @template T
@@ -392,22 +426,20 @@ declare function promptAsync(message?: string, _default?: string, title?: string
  */
 declare function warn(message?: any): Promise<void>;
 /**
- * Asserts the execution of an action or stops the program if errors occur.
- * @template T
- * @param action The action to execute.
- * @param reload Indicates whether the application should be reloaded after an error.
- * @returns A Promise that resolves with the result of the action or rejects with the error.
- * @throws {Error} If the action throws an error.
+ * Executes an action and handles any errors that occur.
+ * @param action The action to be executed.
+ * @param silent In silent mode errors are silently ignored; otherwise, they are thrown and the page is reloaded.
+ * @returns A promise that resolves the action.
  */
-declare function assert<T>(action: () => T, reload?: boolean): Promise<T>;
+declare function assert(action: () => unknown, silent?: boolean): Promise<void>;
 /**
- * Insures that no errors occur when executing an action.
- * @template T
- * @param action The action to execute.
- * @param eventually The callback to execute after the action is complete.
- * @returns A Promise that resolves with the result of the action, or void if it fails.
+ * Executes an action and returns its result, or a default value if an error occurs.
+ * @template T The type of the result returned by the action and the default value.
+ * @param action The action to be executed.
+ * @param $default The default value to return if the action throws an error.
+ * @returns A promise that resolves to the result of the action or the default value.
  */
-declare function insure<T>(action: () => T, eventually?: () => unknown): Promise<T | void>;
+declare function insure<T>(action: () => T | PromiseLike<T>, $default: T): Promise<T>;
 /**
  * Asynchronously loads a promise with a loading animation.
  * @template T
@@ -447,7 +479,7 @@ interface Navigator {
 interface ArchivableInstance<N> {
 	/**
 	 * Exports the instance.
-	 * @returns {N} The exported data.
+	 * @returns The exported data.
 	 */
 	export(): N;
 }
@@ -461,13 +493,13 @@ interface ArchivableInstance<N> {
 interface ArchivablePrototype<N, I extends ArchivableInstance<N>, A extends readonly any[]> {
 	/**
 	 * Imports data and creates an instance.
-	 * @param {N} source The source data to import.
-	 * @param {string} [name] An optional name for the source.
-	 * @returns {I} The created instance.
+	 * @param source The source data to import.
+	 * @param name An optional name for the source.
+	 * @returns The created instance.
 	 */
 	import(source: N, name?: string): I;
 	/**
-	 * @param {...A} args The constructor arguments.
+	 * @param args The constructor arguments.
 	 */
 	new(...args: A): I;
 }
